@@ -47,7 +47,7 @@ jobs:
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: dev
+    environment: devEd
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
