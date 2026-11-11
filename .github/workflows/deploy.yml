@@ -1,0 +1,78 @@
+name: Salesforce CI/CD
+
+on:
+  pull_request:
+    branches: [release-november]
+  push:
+    branches: [release-november]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Log in to the org
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > /tmp/auth.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/auth.txt --alias target
+          rm /tmp/auth.txt
+
+      - name: Validate (check only) with tests
+        run: >
+          sf project deploy start
+          --source-dir force-app
+          --target-org target
+          --test-level RunSpecifiedTests
+          --tests GreetingServiceTest
+          --dry-run
+          --wait 30
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Log in to the org
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > /tmp/auth.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/auth.txt --alias target
+          rm /tmp/auth.txt
+
+      - name: Deploy with tests
+        run: >
+          sf project deploy start
+          --source-dir force-app
+          --target-org target
+          --test-level RunSpecifiedTests
+          --tests GreetingServiceTest
+          --wait 30
